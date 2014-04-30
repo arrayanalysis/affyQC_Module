@@ -160,7 +160,10 @@ addUpdatedCDFenv <- function(Data, species=NULL, type="ENSG") {
   #try to find updated cdf file of choice
   print(Data@cdfName<-paste(Data@annotation,species,type,sep="_"))
   suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE))
-
+  #try without a version number
+  print(Data@cdfName<-paste(gsub("v[0-9]$","",Data@annotation),species,type,sep="_"))
+  suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE)) 
+  
   #if it hasn't loaded, try to download
   if ((class(CDFenv)!="environment")) {
     install.packages(tolower(paste(Data@annotation,species,type,"cdf",sep="")),
@@ -168,6 +171,13 @@ addUpdatedCDFenv <- function(Data, species=NULL, type="ENSG") {
     suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE))
   }
 
+  #if it hasn't loaded, try to download without version number
+  if ((class(CDFenv)!="environment")) {
+    install.packages(tolower(paste(gsub("v[0-9]$","",Data@annotation),species,type,"cdf",sep="")),
+      repos="http://brainarray.mbni.med.umich.edu/bioc")
+    suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE))
+  }
+  
   if ((class(CDFenv)!="environment")) {
     Data@cdfName <- presetCDF
     warning("Could not automatically retrieve CDF environment for this chip type - object kept as is")
@@ -312,7 +322,7 @@ normalizeData <- function(Data, normMeth="", perGroup=FALSE, experimentFactor=NU
         if(class(loaded)=="try-error") {
           install.packages(probeLibrary, repos="http://brainarray.mbni.med.umich.edu/bioc")
         }
-      }      
+      }
       if(aType == "PMMM") ntype = "fullmodel"
       if(aType == "PMonly") ntype = "affinities" # good results if most of the genes are not expressed
 	  normData.tmp <- gcrma(Data.tmp, type=ntype, fast = FALSE)

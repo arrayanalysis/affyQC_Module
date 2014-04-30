@@ -86,7 +86,7 @@ if(arrayGroup!=""){
          ".xls" = {library(gdata); description<-trim(read.xls(descfile, as.is=TRUE))},
          ".xlsx" = {library(gdata); description<-trim(read.xls(descfile, as.is=TRUE))}
 	)
-  if(is.null(description)) stop(paste("extension",extension,"not regognised"))
+  if(is.null(description)) stop(paste("extension",extension,"not recognised"))
   
  # description <- trim(read.table(paste(DESC.DIR, arrayGroup, sep=""), 
  # 	  header = TRUE, as.is = TRUE, sep="\t"))
@@ -129,7 +129,7 @@ rm(colList)
 # Create symbolset for the array groups
 #--------------------------------------
 plotSymbols <- 18-as.numeric(experimentFactor)
-legendSymbols <- sort(unique(plotSymbols), decreasing=TRUE)
+legendSymbols <- sort(plotSymbols, decreasing=TRUE)
 
 ###############################################################################
 # Define display parameters for the images			                          #

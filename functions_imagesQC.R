@@ -1463,7 +1463,7 @@ plotArrayLayout <- function(Data,aType=NULL,
   if(exists("all2")) {
     eval(parse("",-1,paste("try(all<-toTable(all2),TRUE)",sep="")))
   }
-  
+
   dataTable <- paste(substr(Data@annotation,1,nchar(Data@annotation)-2),"CONTROL",sep="")
   suppressWarnings(eval(parse("",-1,paste("data(",dataTable,")",sep="")))) #ArrayTools
   cntrl <- NULL
@@ -1906,21 +1906,15 @@ clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", cl
 ## pcaFun ##
 ############
 
-pcaFun <- function(Data, experimentFactor=NULL, normMeth="", scaled_pca=TRUE, plotColors=NULL, legendColors=NULL,
-  plotSymbols=NULL, legendSymbols=NULL, namesInPlot=FALSE, groupsInLegend=TRUE, WIDTH=1000, HEIGHT=1414, POINTSIZE=24){
+pcaFun <- function(Data, experimentFactor=NULL, normMeth="", scaled_pca=TRUE, plotColors=NULL, 
+   legendColors=NULL, plotSymbols=NULL, legendSymbols=NULL, namesInPlot=FALSE, WIDTH=1000, HEIGHT=1414, POINTSIZE=24){
   # Scaled PCA by default
-  if(groupsInLegend & is.null(experimentFactor)) stop("The 'experimentFactor' parameter must be specified when groupsInLegend is true")
+  if(is.null(experimentFactor)) stop("The 'experimentFactor' parameter must be specified")
   if(is.null(plotColors)) stop("the 'plotColors' parameter is required")
-  if(groupsInLegend & is.null(legendColors)) stop("the 'legendColors' parameter is required when groupsInLegend is true")
+  if(is.null(legendColors)) stop("the 'legendColors' parameter is required")
   if(is.null(plotSymbols)) stop("the 'plotSymbols' parameter is required")
-  if(groupsInLegend & is.null(legendSymbols)) stop("the 'legendSymbols' parameter is required when groupsInLegend is true")
-  
-  if(groupsInLegend & !is.null(experimentFactor)) {
-    if(length(levels(experimentFactor))<=1) {
-      warning("groupsInLegend set to true, but no groups indicated; groups not added to legend")
-    }
-  }
-    
+  if(is.null(legendSymbols)) stop("the 'legendSymbols' parameter is required")
+
   if(length(sampleNames(Data))<3) {
     warning("Only",length(sampleNames(Data)),"sample(s) in dataset, no PCA plot made")
   } else { 
@@ -1958,37 +1952,29 @@ pcaFun <- function(Data, experimentFactor=NULL, normMeth="", scaled_pca=TRUE, pl
 	     layout(rbind(c(1,1,2,2),c(1,1,2,2),c(3,3,4,4),c(3,3,4,4)))
 	    }
 	    par(oma=c(20,0,5,0))
-      plot(pca1$x[,1],pca1$x[,2],cex=cex.circle,pch=plotSymbols,
+        plot(pca1$x[,1],pca1$x[,2],cex=cex.circle,pch=plotSymbols,
+          col=plotColors,xlab=paste("PC1 (",perc_expl1[1],"%)",sep=""),
+          ylab=paste("PC2 (",perc_expl1[2],"%)",sep=""))
+        if(namesInPlot) text(pca1$x[,1],pca1$x[,2], sampleNames(Data),pos=4,cex=cex.text,col=tcol) 
+        plot(pca1$x[,1],pca1$x[,3],cex=cex.circle,pch=plotSymbols,
         col=plotColors,xlab=paste("PC1 (",perc_expl1[1],"%)",sep=""),
-        ylab=paste("PC2 (",perc_expl1[2],"%)",sep=""))
-      if(namesInPlot) text(pca1$x[,1],pca1$x[,2], sampleNames(Data),pos=4,cex=cex.text,col=tcol) 
-      plot(pca1$x[,1],pca1$x[,3],cex=cex.circle,pch=plotSymbols,
-      col=plotColors,xlab=paste("PC1 (",perc_expl1[1],"%)",sep=""),
-      ylab=paste("PC3 (",perc_expl1[3],"%)",sep=""))
-      if(namesInPlot) text(pca1$x[,1],pca1$x[,3], sampleNames(Data),pos=4,cex=cex.text,col=tcol)
-      plot(pca1$x[,2],pca1$x[,3],cex=cex.circle,pch=plotSymbols,
-      col=plotColors,xlab=paste("PC2 (",perc_expl1[2],"%)",sep=""),
-      ylab=paste("PC3 (",perc_expl1[3],"%)",sep=""))
-      if(namesInPlot) text(pca1$x[,2],pca1$x[,3], sampleNames(Data),pos=4,cex=cex.text,col=tcol)
-      barplot((100*pca1$sdev^2)/sum(pca1$sdev^2),xlab="components",ylab="% of total variance explained")
-      
-      #determine whether groups should be added to the legend
-      groupsAdded <- FALSE
-      if(groupsInLegend) {
-        if(length(levels(experimentFactor))>1) {
-          groupsAdded <- TRUE
-        }
-      }
+        ylab=paste("PC3 (",perc_expl1[3],"%)",sep=""))
+        if(namesInPlot) text(pca1$x[,1],pca1$x[,3], sampleNames(Data),pos=4,cex=cex.text,col=tcol)
+        plot(pca1$x[,2],pca1$x[,3],cex=cex.circle,pch=plotSymbols,
+        col=plotColors,xlab=paste("PC2 (",perc_expl1[2],"%)",sep=""),
+        ylab=paste("PC3 (",perc_expl1[3],"%)",sep=""))
+        if(namesInPlot) text(pca1$x[,2],pca1$x[,3], sampleNames(Data),pos=4,cex=cex.text,col=tcol)
+        barplot((100*pca1$sdev^2)/sum(pca1$sdev^2),xlab="components",ylab="% of total variance explained")
         
 		  if(namesInPlot) {
-        if(groupsAdded) { 
+        if(length(levels(experimentFactor))>1){ 
           legend("topright",levels(experimentFactor),
           pch=legendSymbols,col=legendColors,cex=cex.legend)
         }
       } else {
 			  par(mar=c(0,0,0,0))	
 			  plot(1,type="n",xaxt="n",yaxt="n",xlab="",ylab="",bty="n")
-			  if(groupsAdded) {
+			  if(length(levels(experimentFactor))>1) {
 		      legend("topleft",c(levels(experimentFactor),"",sampleNames(Data)),
  #             pch=c(rep(20,length(unique(experimentFactor))+1),plotSymbols,
 			      pch=c(legendSymbols,20,plotSymbols),
