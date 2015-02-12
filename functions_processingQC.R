@@ -474,7 +474,7 @@ createNormDataTable <- function(normData, customCDF=NULL, species=NULL, CDFtype=
     
     try(ensembl <- useMart("ensembl", dataset = paste(spName,"_gene_ensembl",sep="")))
     if(exists("ensembl")) {
-      try(annotationTable<-getBM(attributes=c("ensembl_gene_id","external_gene_id","description"), mart=ensembl, uniqueRows=TRUE),TRUE)
+      try(annotationTable<-getBM(attributes=c("ensembl_gene_id","external_gene_name","description"), mart=ensembl, uniqueRows=TRUE),TRUE)
     }
     if(exists("annotationTable")) {
       normDataTable <- as.data.frame(normDataTable,stringsAsFactors=FALSE)
