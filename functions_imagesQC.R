@@ -542,7 +542,8 @@ ratioPlot <- function(Data,quality=NULL,experimentFactor=NULL,plotColors=NULL,le
     
   if(!is.null(quality)) {  
     #par(parStart)
-  
+
+
     plotFun <- function(i,j,cutoff,Cname){
       ratio35 <- quality@qc.probes[,i]/quality@qc.probes[,j]
       ratioM <- quality@qc.probes[,i]/quality@qc.probes[,i+1]
@@ -1243,8 +1244,10 @@ boxplotFun <- function(Data, experimentFactor=NULL, plotColors=NULL, legendColor
   if(is.null(plotColors)) stop("the 'plotColors' parameter is required")
   if(is.null(legendColors)) stop("the 'legendColors' parameter is required")
   
- 
-  if(class(Data) == "AffyBatch") {
+  print(class(Data))  
+
+  #check affy or genefeatured (oligo)
+  if(class(Data) == "AffyBatch" || class(Data) == "GeneFeatureSet"  || class(Data) == "ExonFeatureSet") {
     Type <- "Raw"
     tmain <- "Boxplot of raw intensities"
     tmtext2 <- "Raw log intensity\n\n\n"
@@ -1257,7 +1260,12 @@ boxplotFun <- function(Data, experimentFactor=NULL, plotColors=NULL, legendColor
 
  png(file = paste(Type,"DataBoxplot.png", sep=""),width=WIDTH,height=HEIGHT, pointsize=POINTSIZE)  
   par(oma=c(17,0,0,0), cex.axis=1) 
-  suppressWarnings(boxplot(Data, col=plotColors ,main=tmain, axes=FALSE))
+  
+  if(class(Data) != "GeneFeatureSet"  && class(Data) != "ExonFeatureSet") {
+    suppressWarnings(boxplot(Data, col=plotColors ,main=tmain, axes=FALSE))
+  } else {
+    suppressWarnings(boxplot(Data, which="all", col=plotColors ,main=tmain, axes=FALSE))
+  }
   if(length(levels(experimentFactor))>1){ 
     legend("topright", levels(experimentFactor),
        col=legendColors,fill=legendColors, cex = 0.7, bg = "white", bty = "o")
@@ -1285,9 +1293,10 @@ densityFun <- function(Data, plotColors=NULL, normMeth="",
   
   if(is.null(plotColors)) stop("the 'plotColors' parameter is required")
   
-  Type <- ifelse(class(Data) == "AffyBatch","Raw","Norm")
+  #check affy or genefeatured (oligo)
+  Type <- ifelse(class(Data) == "AffyBatch" ||  class(Data) == "GeneFeatureSet" ||  class(Data) == "ExonFeatureSet" ,"Raw","Norm")
   
-    png(file = paste(Type,"DensityHistogram.png", sep=""),width=WIDTH,height=HEIGHT,pointsize=POINTSIZE)
+  png(file = paste(Type,"DensityHistogram.png", sep=""),width=WIDTH,height=HEIGHT,pointsize=POINTSIZE)
 	if(length(sampleNames(Data))<MAXARRAY){
 		cexval <- 0.65
 		par(oma=c(12,0,0,0) )
@@ -1325,7 +1334,8 @@ densityFunUnsmoothed <- function(Data, plotColors=NULL, normMeth="",
   if(is.null(plotColors)) stop("the 'plotColors' parameter is required")
   
   #plot(density(exprs(Data)))
-  Type <- ifelse(class(Data) == "AffyBatch","Raw","Norm")
+  #check affy or genefeatured (oligo)
+  Type <- ifelse(class(Data) == "AffyBatch" ||  class(Data) == "GeneFeatureSet" ,"Raw","Norm")
   
   if(Type == "Raw"){
     tmp_data <- log(exprs(Data),2)
@@ -1370,7 +1380,9 @@ maFun <- function(Data, experimentFactor=NULL, perGroup=FALSE, normMeth="", aTyp
   WIDTH=1000, HEIGHT=1414, MAXARRAY=41){                       
   
   #verify whether raw or normalised data have been provided  
-  if(class(Data) == "AffyBatch"){
+
+  #check affy or genefeatured (oligo)
+  if(class(Data) == "AffyBatch" ||  class(Data) == "GeneFeatureSet" ||  class(Data) == "ExonFeatureSet"){
     if(is.null(aType)) stop("When selecting MA plots of raw data, 'aType' must be provided")
     Type <- "Raw"
 	tmain <- paste("MA plots of raw data",ifelse(perGroup,", computed for group",""),sep="")
@@ -1409,9 +1421,13 @@ maFun <- function(Data, experimentFactor=NULL, perGroup=FALSE, normMeth="", aTyp
         from <- nPerPage*l - (nPerPage-1)
         to <-   min(nPerPage*l, length(sampleNames(x2)))        
         if(Type=="Raw" && aType!="PMMM") {
-          MAplot(x2, pairs = FALSE, which= from:to, plot.method = "smoothScatter", lwd=3, type="pm", cex.main=cexmain,cex=cexval)    
+          if(class(Data) == "AffyBatch"){
+            MAplot(x2, pairs = FALSE, which= from:to, plotFun = smoothScatter, lwd=3, type="pm", cex.main=cexmain,cex=cexval)    
+          } else {
+            MAplot(x2, pairs = FALSE, which= from:to, plotFun = smoothScatter, lwd=3, what=exprs, cex.main=cexmain,cex=cexval)
+          }
         } else {
-          MAplot(x2, pairs = FALSE, which= from:to, plot.method = "smoothScatter", lwd=3, cex.main=cexmain,cex=cexval)    
+          MAplot(x2, pairs = FALSE, which= from:to, plotFun = smoothScatter, lwd=3, cex.main=cexmain,cex=cexval)    
         }
 		mtext(paste(tmain,ifelse(perGroup,k,""),ifelse(nplots>1,paste(l,"/",nplots),"")),side = 3, outer = TRUE, font = 2, cex = 2)  
         dev.off()
@@ -1773,13 +1789,14 @@ rleFun <- function(Data, Data.pset=NULL, experimentFactor=NULL, plotColors=NULL,
 ## correlFun ##
 ###############
 
-correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward", normMeth="",
+correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward.D2", normMeth="",
   experimentFactor=NULL, legendColors=NULL, WIDTH=1000, HEIGHT=1414, POINTSIZE=24,MAXARRAY=41){  
 	
   if(is.null(experimentFactor)) stop("the 'exerimentFactor' parameter is required")	
   if(is.null(legendColors)) stop("the 'legendColors' parameter is required")	
   
-  if(class(Data) == "AffyBatch") {
+   #check affy or genefeatured (oligo)
+  if(class(Data) == "AffyBatch" || class(Data) == "GeneFeatureSet" || class(Data) == "ExonFeatureSet" ){
     Type <- "Raw"
     text1 <- "Raw data correlation plot"
   } else {
@@ -1845,7 +1862,7 @@ correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward", nor
 ## clusterFun ##
 ################
 
-clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", clusterOption2="ward", normMeth="", 
+clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", clusterOption2="ward.D2", normMeth="", 
   plotColors=NULL, legendColors=NULL, plotSymbols=NULL, legendSymbols=NULL, WIDTH=1000, HEIGHT=1414, POINTSIZE=24, MAXARRAY=41) {
 
   if(is.null(experimentFactor)) stop("The 'experimentFactor' parameter must be specified")
@@ -1854,7 +1871,8 @@ clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", cl
   if(is.null(plotSymbols)) stop("the 'plotSymbols' parameter is required")
   if(is.null(legendSymbols)) stop("the 'legendSymbols' parameter is required")
   
-  if(class(Data)=="AffyBatch") {
+  #check affy or genefeatured (oligo)
+  if(class(Data)=="AffyBatch" || class(Data) == "GeneFeatureSet" || class(Data) == "ExonFeatureSet") {
     Type <- "Raw"
     main <- "Cluster dendrogram of raw data"
   } else {
@@ -1876,7 +1894,15 @@ clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", cl
         correl <- euc(t(exprs(Data)))
       }
     )
-    clust <- hclust(correl, method = tolower(clusterOption2))
+    if(tolower(clusterOption2)!="ward.d2" && tolower(clusterOption2)!="ward.d") {
+      clust <- hclust(correl, method = tolower(clusterOption2))
+    } else {
+      if(tolower(clusterOption2)=="ward.d2") {
+        clust <- hclust(correl, method = "ward.D2")
+      } else {
+        clust <- hclust(correl, method = "ward.D")
+      }
+    }
     png(file = paste(Type,"DataCluster_",clusterOption1,".png",sep=""),width=WIDTH,height=HEIGHT,pointsize=POINTSIZE)
 	  if(length(sampleNames(Data))<MAXARRAY) {
 		  cexval1 <- 0.75
@@ -1919,7 +1945,8 @@ pcaFun <- function(Data, experimentFactor=NULL, normMeth="", scaled_pca=TRUE, pl
     warning("Only",length(sampleNames(Data)),"sample(s) in dataset, no PCA plot made")
   } else { 
 
-    if(class(Data) == "AffyBatch"){
+    #check affy or genefeatured (oligo)
+    if(class(Data) == "AffyBatch" || class(Data) == "GeneFeatureSet" || class(Data) == "ExonFeatureSet" ){
       #raw data
       tmain <- "PCA analysis of Raw data"
       Type="Raw"	

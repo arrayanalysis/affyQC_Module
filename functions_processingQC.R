@@ -157,15 +157,21 @@ addUpdatedCDFenv <- function(Data, species=NULL, type="ENSG") {
   # even if it does not exist)
   presetCDF <- Data@cdfName
 
-  #try to find updated cdf file of choice
+  #try to find updated cdf file of choice***
   print(Data@cdfName<-paste(Data@annotation,species,type,sep="_"))
+
   suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE))
   #try without a version number
   print(Data@cdfName<-paste(gsub("v[0-9]$","",Data@annotation),species,type,sep="_"))
   suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE)) 
   
-  #if it hasn't loaded, try to download
+
+  #if it hasn't loaded, try to download ***
   if ((class(CDFenv)!="environment")) {
+    print("***")
+    print(Data@annotation)
+    print(species)
+    print(type)
     install.packages(tolower(paste(Data@annotation,species,type,"cdf",sep="")),
       repos="http://brainarray.mbni.med.umich.edu/bioc")
     suppressWarnings(try(CDFenv <- getCdfInfo(Data),TRUE))
@@ -266,7 +272,7 @@ deduceSpecies <- function(descr=NULL) {
 #----------------------
 
 normalizeData <- function(Data, normMeth="", perGroup=FALSE, experimentFactor=NULL, 
-  customCDF=TRUE, species=NULL, CDFtype=NULL, aType=NULL, WIDTH=1000, HEIGHT=1414) {
+  customCDF=TRUE, species=NULL, CDFtype=NULL, aType=NULL, isOligo = FALSE, WIDTH=1000, HEIGHT=1414) {
 
   if((normMeth=="") || is.null(normMeth)) stop("normMeth, the requested normalization method, must be provided")
   normMeth <- toupper(normMeth)
@@ -285,7 +291,10 @@ normalizeData <- function(Data, normMeth="", perGroup=FALSE, experimentFactor=NU
 	Data.copy <- Data
 	if(customCDF){
 		print ("Change CDF before pre-processing")
-		Data.copy <- addUpdatedCDFenv(Data.copy, species, CDFtype)
+		if(!isOligo)
+			Data.copy <- addUpdatedCDFenv(Data.copy, species, CDFtype)
+		else
+			warning("CUSTOM CDF NOT AVAILABLE FOR OLIGO PACKAGE. Standard CDF kept!")
 	}
 	print ("Pre-processing is running")
 
@@ -317,6 +326,7 @@ normalizeData <- function(Data, normMeth="", perGroup=FALSE, experimentFactor=NU
       "GCRMA" = {
       if(customCDF) {
         #probe library needed, first try whether this has been intalled, otherwise do so
+	#***
         probeLibrary <- tolower(paste(Data@annotation,species,CDFtype,"probe",sep=""))
         loaded <- suppressWarnings(try(eval(parse("",-1,paste("library(",probeLibrary,")", sep=""))),TRUE))
         if(class(loaded)=="try-error") {
@@ -355,7 +365,14 @@ normalizeData <- function(Data, normMeth="", perGroup=FALSE, experimentFactor=NU
   plot(c(0,2), type = 'n', ann = FALSE, axes = FALSE, 
      frame.plot = TRUE, xlim = c(0, 2), ylim = c(0,2))
   text(1,1,"Pre-processing of Raw Data\n\n\n",cex=3)
-  text(1,1,paste("\n\nMethod: ",normMeth,"\nAnnotation: ",Data.copy@cdfName),cex=2.5)
+  
+  #isOligo test
+  result <- try(  text(1,1,paste("\n\nMethod: ",normMeth,"\nAnnotation: ",Data.copy@cdfName),cex=2.5), silent=TRUE)
+  if (class(result) == "try-error") {
+	  text(1,1,paste("\n\nMethod: ",normMeth,"\nAnnotation: ",Data.copy@annotation),cex=2.5)
+  }
+  #isOligo test end
+
   if(perGroup) text(1,1,paste("\n\n\n\n\nNormalization per experimental group"),cex=2.5)
   dev.off()
   

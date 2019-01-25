@@ -89,7 +89,42 @@ print("Raw data ready to be loaded in R")
 require("affy", quietly = TRUE)
 #print(paste("R version:",R.Version()$version.string))
 #print(paste("affy version:",sessionInfo()$otherPkgs$affy$Version))
-rawData <- ReadAffy()
+
+  ##-- check if is oligo, set global variable isOligo (turn this into function?!?!) (remove global variable!!!!!!!!!)
+
+  #print(DATA.DIR)
+  filenameindex <- grep("[.CEL$]", dir(), fixed=FALSE, ignore.case=TRUE)[1]
+  
+  print(dir()[filenameindex])
+
+  if(!is.na(filenameindex)){
+     #print("going to check oligo")     
+     filename <- dir()[filenameindex];
+     res <- tryCatch( ReadAffy(filenames=filename) , warning = function(e){e$message}, error = function(e){e$message})
+     print(res)
+     if(class(res)=="AffyBatch")
+	isOligo <- FALSE
+     else
+        isOligo <- grepl("oligo", res, ignore.case=TRUE)
+     #print(isOligo)
+  } else {
+     stop("No .cel file found in the specified directory");
+  }
+
+  if(isOligo){
+	  #source("http://bioconductor.org/biocLite.R")
+	  require("oligo") #asklars
+          print("reading affy with oligo")
+	  #print(regexpr("[\\.CEL^]", dir(), fixed=FALSE, ignore.case=TRUE))
+          #rawData <- read.celfiles( regexpr("[\\.CEL^]", dir(), fixed=FALSE, ignore.case=TRUE)  )
+	  celFiles <- list.celfiles()
+	  print(celFiles)
+          rawData <- read.celfiles( celFiles ) # this should be improved to get only the cell files
+  }else{
+	  print("reading affy with regular lib")
+          rawData <- ReadAffy()
+  }
+  ##--
 
 ###############################################################################
 # Clean space if the usage is the webportal        						      #

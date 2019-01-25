@@ -22,12 +22,12 @@
 ###############################################################################
 
 ### Change these Paths if needed ###
-DATA.DIR <- getwd()
-SCRIPT.DIR <- getwd()
+DATA.DIR <- "D:/Microarrays/cBITE data/Total data set collection/StudyID_14 Piel nuclear confinement/raw-data"
+SCRIPT.DIR <- "D:\\R-stuff\\ArrayAnalysis\\affyQC_Module oligo version"
 # If you want to use the last version, uncomment the following line after 
 # updating the milestone number:	
 # SCRIPT.DIR <- "http://svn.bigcat.unimaas.nl/arrayanalysis/tags/version_1.0.0/src/"
-WORK.DIR <- getwd()
+WORK.DIR <- "D:/Microarrays/cBITE data/Total data set collection/StudyID_14 Piel nuclear confinement/raw-data/normalization"
 
 ####################################
 
@@ -47,7 +47,8 @@ if(exists("WORK.DIR")) WORK.DIR <- correctDIR(WORK.DIR)
 # Usage from R local install is to run the function in the repository 
 # containing all CEL files (already unziped)
 
-arrayGroup <- "" #see comments below
+prefOligo <- TRUE
+arrayGroup <- "D:\\Microarrays\\cBITE data\\Total data set collection\\StudyID_14 Piel nuclear confinement\\raw-data\\description.txt" #see comments below
 reOrder <- TRUE
 layoutPlot <- TRUE
 controlPlot <- TRUE
@@ -76,13 +77,13 @@ correlNorm <- TRUE
 clusterRaw <- TRUE
 clusterNorm <- TRUE
 clusterOption1 <- "Spearman" #see comments below
-clusterOption2 <- "ward" #see comments below
+clusterOption2 <- "ward.D2" #see comments below
 PCARaw <- TRUE  
 PCANorm <- TRUE     
 PMAcalls <- FALSE
 normMeth <- "RMA" #see comments below
 normOption1 <- "dataset" #see comments below
-customCDF <- TRUE
+customCDF <- FALSE
 CDFtype <- "ENSG" #see comments below
 species <- "" #see comments below
  
@@ -95,6 +96,7 @@ source(paste(SCRIPT.DIR,"run_affyAnalysisQC.R",sep=""),local=TRUE)
 # "automated calls" means usage from GenePattern and arrayanalysis.org
 # Note that flag letters are only used in these automated calls
   
+#     prefOligo = prefer Oligo for chiptypes for which both Affy and Oligo can be used
 # d = rawdataZip = zip file with the .CEL data  (usage in automated calls only)
 # D = libdir = global variable sent by GenePattern (usage in GenePattern call 
 #        only)

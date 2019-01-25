@@ -49,19 +49,73 @@ reload();
 
 if(!exists("rawData")) { # this is the case when the script is run locally
   setwd(DATA.DIR)
-  rawData <- ReadAffy()
+
+  ##-- check if is oligo, set global variable isOligo (turn this into function?!?!) (remove global variable!!!!!!!!!)
+  ##copied, inserted, and modified (as indicated) from processFilesQC_web.R - temp fix
+
+  #print(DATA.DIR)
+  filenameindex <- grep("[.CEL]$", dir(), fixed=FALSE, ignore.case=TRUE)[1] #modified line
+  
+  print(dir()[filenameindex])
+
+  if(!is.na(filenameindex)){
+     #print("going to check oligo")     
+     filename <- dir()[filenameindex];
+     res <- tryCatch( ReadAffy(filenames=filename) , warning = function(e){e$message}, error = function(e){e$message})
+     print(res)
+     if(class(res)=="AffyBatch")
+	isOligo <- FALSE
+     else
+        isOligo <- grepl("oligo", res, ignore.case=TRUE)
+     #print(isOligo)
+  } else {
+     stop("No .cel file found in the specified directory");
+  }
+
+  if(isOligo){
+	  #source("http://bioconductor.org/biocLite.R")
+	  require("oligo") #asklars
+          print("reading affy with oligo")
+	  #print(regexpr("[\\.CEL^]", dir(), fixed=FALSE, ignore.case=TRUE))
+          #rawData <- read.celfiles( regexpr("[\\.CEL^]", dir(), fixed=FALSE, ignore.case=TRUE)  )
+	  celFiles <- list.celfiles()
+	  print(celFiles)
+          rawData <- read.celfiles( grep("[\\.CEL^]$", dir(), fixed=FALSE, ignore.case=TRUE,value=TRUE)  )#modified line
+  } else {
+    if(exists("prefOligo")) {
+      if(prefOligo){
+        require("oligo") #asklars
+        celFiles <- list.celfiles()
+        print(celFiles)
+        try(rawData <- read.celfiles( grep("[\\.CEL^]$", dir(), fixed=FALSE, ignore.case=TRUE,value=TRUE)  ),TRUE) #modified line
+		if(exists("rawData")) isOligo <- TRUE
+      }
+    }
+    if(!exists("rawData")) {
+	    print("reading affy with regular lib")
+      rawData <- ReadAffy()
+    } else {
+      print("data read with oligo")
+    }
+  }
+  ##--
+  
   print("Raw data have been loaded in R")
 }
+
 if(!exists("libdir")) { # libdir exists only for GenePattern usage
   setwd(SCRIPT.DIR)
   setwd(WORK.DIR)
 }
 
 # Make sure that the CDF environment works
-rawData <- addStandardCDFenv(rawData)   # if already works, won't be changed
-
-# Verify the array type (PMMM or PMonly)
-aType <- getArrayType(rawData)
+if(!isOligo){
+	rawData <- addStandardCDFenv(rawData)   # if already works, won't be changed
+	# Verify the array type (PMMM or PMonly)
+	aType <- getArrayType(rawData)
+} else {
+	aType <- "PMonly"
+}
 
 # When refName does not exist, use the empty string
 if(!exists("refName")) refName <- ""
@@ -81,15 +135,15 @@ if(arrayGroup!=""){
   extension<-paste(".",extension[[1]][length(extension[[1]])],sep="")  
   description = NULL;
   switch(extension,
-         ".txt" = description<-trim(read.delim(descfile, fill = FALSE, as.is=TRUE)),
-         ".csv" = description<-trim(read.csv(descfile, fill = FALSE, as.is=TRUE)),
-         ".xls" = {library(gdata); description<-trim(read.xls(descfile, as.is=TRUE))},
-         ".xlsx" = {library(gdata); description<-trim(read.xls(descfile, as.is=TRUE))}
+         ".txt" = description<-as.data.frame(apply(read.delim(descfile, fill = FALSE, as.is=TRUE),2,trimws)),
+         ".csv" = description<-as.data.frame(apply(read.csv(descfile, fill = FALSE, as.is=TRUE),2,trimws)),
+         ".xls" = {library(gdata); description<-as.data.frame(apply(read.xls(descfile, as.is=TRUE),2,trimws))},
+         ".xlsx" = {library(gdata); description<-as.data.frame(apply(read.xls(descfile, as.is=TRUE),2,trimws))}
 	)
   if(is.null(description)) stop(paste("extension",extension,"not recognised"))
   
  # description <- trim(read.table(paste(DESC.DIR, arrayGroup, sep=""), 
- # 	  header = TRUE, as.is = TRUE, sep="\t"))
+	 # 	  header = TRUE, as.is = TRUE, sep="\t"))
 	
   if(length(grep(".CEL",toupper(colnames(description)[1]),
     ignore.case = TRUE))>0) {
@@ -217,9 +271,9 @@ if(ratio && !is.null(quality)) {
 #-------------------------
 
 if(degPlot) {
-  print ("   plot degradation plot"  )
-  RNAdegPlot(rawData,plotColors=plotColors,
-     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE,MAXARRAY=maxArray)
+  print ("   plot degradation plot (skipped for oligo based analysis)"  )
+  try(RNAdegPlot(rawData,plotColors=plotColors,
+     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE,MAXARRAY=maxArray),TRUE)
 }
 
 ###############################################################################
@@ -278,18 +332,18 @@ if(PMAcalls) {
 #-------------------------------------
 
 if(posnegDistrib) {
-  print ("   plot pos & neg control distribution"  )
-  PNdistrPlot(rawData,
-     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE)
+  print ("   plot pos & neg control distribution  (skipped for oligo based analysis)"  )
+  try(PNdistrPlot(rawData,
+     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE),TRUE)
 }
 
 # 2.6 affx control profiles and boxplot
 #--------------------------------------
 
 if(controlPlot) {
-  print ("   plot control profiles and/or boxplots")
-  controlPlots(rawData,plotColors,experimentFactor,legendColors,
-     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE,MAXARRAY=maxArray)
+  print ("   plot control profiles and/or boxplots (skipped for oligo based analysis)")
+  try(controlPlots(rawData,plotColors,experimentFactor,legendColors,
+     WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE,MAXARRAY=maxArray),TRUE)
 }
 
 ###############################################################################
@@ -326,6 +380,7 @@ if(densityRaw){
 # 3.2.1 MA-plot or raw data
 #--------------------------
 
+
 if(MARaw){
   print ("   MA-plots for raw intensities")
   maFun(Data=rawData, experimentFactor, perGroup=(MAOption1=="group"), 
@@ -344,10 +399,12 @@ if(layoutPlot) {
 # 3.3.2 Pos and Neg control Position
 #-----------------------------------
 
-if(posnegCOI){  
+if(posnegCOI && !isOligo){  
   print ("   Pos/Neg COI")
   PNposPlot(rawData,WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE)
 }
+
+if(!isOligo){ #start of !isOligo
 
 # 3.3.3.1 Create PLM object
 #--------------------------
@@ -363,7 +420,7 @@ if(posnegCOI){
 # 3.3.3.2 Spatial images
 #---------------------
 
-if(spatialImage) {  
+if(spatialImage) {   
   print ("   2D virtual images")
   valtry<-try(spatialImages(rawData, Data.pset=rawData.pset, TRUE,FALSE,FALSE,FALSE, 
 	          WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE),
@@ -394,6 +451,7 @@ if(PLMimage) {
   }
 }
 
+
 # 3.4.1 NUSE
 #-----------
 
@@ -413,6 +471,8 @@ if(Rle){
      legendColors,WIDTH=WIDTH,HEIGHT=HEIGHT,POINTSIZE=POINTSIZE,
 	 MAXARRAY=maxArray)
 }
+
+} #end of isOligo
 
 ###############################################################################
 # 4.1 Correlation Plot  of raw data
@@ -471,12 +531,12 @@ if(normMeth!="" && normMeth!="none") {
     }	
 	if(species!=""){
 		normData <- normalizeData(rawData,normMeth,perGroup=(normOption1=="group"), 
-		  experimentFactor, aType=aType, customCDF, species, CDFtype,WIDTH=WIDTH,
+		  experimentFactor, aType=aType, customCDF, species, CDFtype, isOligo, WIDTH=WIDTH,
 		  HEIGHT=HEIGHT)
 	}else{
 		warning("Could not define species; the CDF will not be changed")
 		normData <- normalizeData(rawData,normMeth,perGroup=(normOption1=="group"), 
-		  experimentFactor, aType=aType, customCDF,WIDTH=WIDTH,HEIGHT=HEIGHT)
+		  experimentFactor, aType=aType, customCDF, isOligo, WIDTH=WIDTH,HEIGHT=HEIGHT)
 	}
 
   } else {
@@ -569,7 +629,10 @@ if((normMeth=="") || (normMeth=="none")) {
 } else {  
   print("Saving normalized data table")
 
-  normDataTable <- createNormDataTable(normData, customCDF=(sum(featureNames(normData)!=featureNames(rawData)[1:length(featureNames(normData))])>0), species, CDFtype)
+  if(isOligo)
+   normDataTable <- createNormDataTable(normData, customCDF=FALSE, species, CDFtype)
+  else
+   normDataTable <- createNormDataTable(normData, customCDF=(sum(featureNames(normData)!=featureNames(rawData)[1:length(featureNames(normData))])>0), species, CDFtype)
     
   #output normalised expression data to file
   refName <- sub("(_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}_\\d{2})", "", refName)  
@@ -580,5 +643,10 @@ if((normMeth=="") || (normMeth=="none")) {
 
 # clean R: (or quit without saving the environment...)
 # rm(list = ls())
+
+print("I am on test mode")
+warning("test mode");
+write("prints to stdout", stdout())
+
 
 if(!is.null(warnings())) warnings()
