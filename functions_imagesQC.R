@@ -1773,7 +1773,7 @@ rleFun <- function(Data, Data.pset=NULL, experimentFactor=NULL, plotColors=NULL,
 ## correlFun ##
 ###############
 
-correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward", normMeth="",
+correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward.D2", normMeth="",
   experimentFactor=NULL, legendColors=NULL, WIDTH=1000, HEIGHT=1414, POINTSIZE=24,MAXARRAY=41){  
 	
   if(is.null(experimentFactor)) stop("the 'exerimentFactor' parameter is required")	
@@ -1845,7 +1845,7 @@ correlFun <- function(Data, clusterOption1="pearson", clusterOption2="ward", nor
 ## clusterFun ##
 ################
 
-clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", clusterOption2="ward", normMeth="", 
+clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", clusterOption2="ward.D2", normMeth="", 
   plotColors=NULL, legendColors=NULL, plotSymbols=NULL, legendSymbols=NULL, WIDTH=1000, HEIGHT=1414, POINTSIZE=24, MAXARRAY=41) {
 
   if(is.null(experimentFactor)) stop("The 'experimentFactor' parameter must be specified")
@@ -1876,7 +1876,15 @@ clusterFun <- function(Data, experimentFactor=NULL, clusterOption1="pearson", cl
         correl <- euc(t(exprs(Data)))
       }
     )
-    clust <- hclust(correl, method = tolower(clusterOption2))
+    if(tolower(clusterOption2)!="ward.d2" & tolower(clusterOption2)!="ward.d") {
+	  clust <- hclust(correl, method = tolower(clusterOption2))
+	} else {
+	  if(tolower(clusterOption2)=="ward.d2") {
+	    clust <- hclust(correl, method = "ward.D2")
+	  } else {
+	    clust <- hclust(correl, method = "ward.D")
+	  }
+	}    
     png(file = paste(Type,"DataCluster_",clusterOption1,".png",sep=""),width=WIDTH,height=HEIGHT,pointsize=POINTSIZE)
 	  if(length(sampleNames(Data))<MAXARRAY) {
 		  cexval1 <- 0.75
