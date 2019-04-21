@@ -1257,7 +1257,7 @@ boxplotFun <- function(Data, experimentFactor=NULL, plotColors=NULL, legendColor
 
  png(file = paste(Type,"DataBoxplot.png", sep=""),width=WIDTH,height=HEIGHT, pointsize=POINTSIZE)  
   par(oma=c(17,0,0,0), cex.axis=1) 
-  suppressWarnings(boxplot(Data, col=plotColors ,main=tmain, axes=FALSE))
+  suppressWarnings(boxplot(Data, col=plotColors ,main=tmain, axes=FALSE, pch = 20, cex=0.7))
   if(length(levels(experimentFactor))>1){ 
     legend("topright", levels(experimentFactor),
        col=legendColors,fill=legendColors, cex = 0.7, bg = "white", bty = "o")
